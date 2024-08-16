@@ -1,0 +1,48 @@
+name: fastapi-api
+services:
+    api1: &api
+        image: wagfm/fastapi-api:0.1
+        container_name: fastapi-api-python-1
+        build: .
+        command: uvicorn src.app:app --host 0.0.0.0 --port 8000 --workers 2
+        environment: &api_env
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres123
+            POSTGRES_DATABASE: postgres
+        depends_on:
+            postgres:
+                condition: service_healthy
+        restart: on-failure
+        ports:
+            - "8000:8000"
+        deploy:
+            resources:
+                limits:
+                    cpus: 1.00
+                    memory: 0.50GB
+
+    postgres:
+        container_name: fastapi-api-postgres
+        image: postgres:12.19-alpine
+        environment:
+            PGUSER: postgres
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres123
+            POSTGRES_DB: postgres
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U postgres -d postgres" ]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+            start_period: 10s
+        volumes:
+            - ./postgresql.conf:/docker-entrypoint-initdb.d/postgresql.conf
+        ports:
+            - "5432:5432"
+        deploy:
+            resources:
+                limits:
+                    cpus: 1.00
+                    memory: 1.0GB
